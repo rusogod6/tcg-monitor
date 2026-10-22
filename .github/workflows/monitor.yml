@@ -15,7 +15,7 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -35,6 +35,7 @@ jobs:
       - name: Run one cycle
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          MAX_RUNTIME: "300"
         run: python tcg_monitor.py --once
 
       - name: Save state
