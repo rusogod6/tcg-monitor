@@ -44,6 +44,8 @@ STATE_FILE = os.environ.get("STATE_FILE", "state.json")
 RESPECT_ROBOTS = True        # sare peste paginile interzise de robots.txt
 EXCLUDE_SINGLES = True       # ignoră cărți individuale (ex. "Pikachu ex 033/106")
 MAX_DETAIL_FETCH_PER_SITE = 15   # câte pagini de produs se deschid per ciclu pentru detalii
+MAX_RUNTIME = int(os.environ.get("MAX_RUNTIME", "0"))  # secunde; după ce trece, se sar verificările pe paginile de produs (0 = fără limită)
+_DEADLINE = 0.0
 DETAIL_BUDGET = int(os.environ.get("DETAIL_BUDGET", "12"))  # câte produse cu stoc necunoscut se re-verifică per ciclu/site
 FLOOD_LIMIT = 40             # peste atâtea produse „noi" deodată pe un site = probabil defect, nu alertăm
 ALERT_PREORDER = os.environ.get("ALERT_PREORDER", "1") != "0"   # "0" = alertă doar pentru „în stoc", nu și precomenzi
@@ -574,6 +576,9 @@ def resolve_by_detail(session, site: dict, items: dict, prev: dict, now: float) 
     cand.sort(key=prio)
     evs = []
     for u in cand[:budget]:
+        if _DEADLINE and time.time() > _DEADLINE:
+            print(f"[detalii] {site['name']}: timpul alocat s-a terminat, restul verificărilor la ciclul următor", flush=True)
+            break
         old = prev[u]
         old_status = old["status"]
         old["checked_at"] = now
@@ -681,6 +686,8 @@ _error_notified: set = set()
 
 
 def run_cycle(session, sites: list, state: dict):
+    global _DEADLINE
+    _DEADLINE = time.time() + MAX_RUNTIME if MAX_RUNTIME else 0.0
     baselined = []
     for site in sites:
         key = site["key"]
